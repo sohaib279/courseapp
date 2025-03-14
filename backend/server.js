@@ -45,7 +45,11 @@ app.use(fileUpload({
     api_key: process.env.api_key ,
     api_secret: process.env.api_secret ,
 }); 
-
+  // test route
+  app.get('/', (req, res) => {
+    res.send('Hello from Express on Vercel!');
+  });
+  
 //defining routes
 app.use("/api/v1/course",courseRoute)
 app.use("/api/v1/user",userRoute)
