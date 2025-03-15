@@ -1,52 +1,104 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { z } from "zod";
 import config from "../config.js";
 import { Admin } from "../models/admin.model.js";
+
+
 
 export const signup = async (req, res) => {
   const { firstName, lastName, email, password } = req.body;
 
-  const adminSchema = z.object({
-    firstName: z
-      .string()
-      .min(3, { message: "firstName must be atleast 3 char long" }),
-    lastName: z
-      .string()
-      .min(3, { message: "lastName must be atleast 3 char long" }),
-    email: z.string().email(),
-    password: z
-      .string()
-      .min(6, { message: "password must be atleast 6 char long" }),
-  });
+  // Manual validation
+  const errors = [];
 
-  const validatedData = adminSchema.safeParse(req.body);
-  if (!validatedData.success) {
-    return res
-      .status(400)
-      .json({ errors: validatedData.error.issues.map((err) => err.message) });
+  if (!firstName || firstName.trim().length < 3) {
+    errors.push("First name must be at least 3 characters long");
   }
 
-  const hashedPassword = await bcrypt.hash(password, 10);
+  if (!lastName || lastName.trim().length < 3) {
+    errors.push("Last name must be at least 3 characters long");
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!email || !emailRegex.test(email)) {
+    errors.push("Invalid email format");
+  }
+
+  if (!password || password.length < 6) {
+    errors.push("Password must be at least 6 characters long");
+  }
+
+  if (errors.length > 0) {
+    return res.status(400).json({ errors });
+  }
 
   try {
-    const existingAdmin = await Admin.findOne({ email: email });
+    const existingAdmin = await Admin.findOne({ email });
     if (existingAdmin) {
       return res.status(400).json({ errors: "Admin already exists" });
     }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     const newAdmin = new Admin({
       firstName,
       lastName,
       email,
       password: hashedPassword,
     });
+
     await newAdmin.save();
-    res.status(201).json({ message: "Signup succeedded", newAdmin });
+    res.status(201).json({ message: "Signup succeeded", newAdmin });
   } catch (error) {
+    console.error("Error in signup", error);
     res.status(500).json({ errors: "Error in signup" });
-    console.log("Error in signup", error);
   }
 };
+
+
+// export const signup = async (req, res) => {
+//   const { firstName, lastName, email, password } = req.body;
+
+//   const adminSchema = z.object({
+//     firstName: z
+//       .string()
+//       .min(3, { message: "firstName must be atleast 3 char long" }),
+//     lastName: z
+//       .string()
+//       .min(3, { message: "lastName must be atleast 3 char long" }),
+//     email: z.string().email(),
+//     password: z
+//       .string()
+//       .min(6, { message: "password must be atleast 6 char long" }),
+//   });
+
+//   const validatedData = adminSchema.safeParse(req.body);
+//   if (!validatedData.success) {
+//     return res
+//       .status(400)
+//       .json({ errors: validatedData.error.issues.map((err) => err.message) });
+//   }
+
+//   const hashedPassword = await bcrypt.hash(password, 10);
+
+//   try {
+//     const existingAdmin = await Admin.findOne({ email: email });
+//     if (existingAdmin) {
+//       return res.status(400).json({ errors: "Admin already exists" });
+//     }
+//     const newAdmin = new Admin({
+//       firstName,
+//       lastName,
+//       email,
+//       password: hashedPassword,
+//     });
+//     await newAdmin.save();
+//     res.status(201).json({ message: "Signup succeedded", newAdmin });
+//   } catch (error) {
+//     res.status(500).json({ errors: "Error in signup" });
+//     console.log("Error in signup", error);
+//   }
+// };
 
 export const login = async (req, res) => {
   const { email, password } = req.body;
