@@ -1,1 +1,1 @@
-export const BACKEND_URL="https://courseapp-p92m.vercel.app/api/v1"
+export const BACKEND_URL="https://courseapp-p92m.vercel.app"
